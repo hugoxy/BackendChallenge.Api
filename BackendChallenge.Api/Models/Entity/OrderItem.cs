@@ -15,13 +15,5 @@
             Quantity = quantity;
             Price = price;
         }
-
-        public override bool Equals(object obj)
-        {
-            return obj is OrderItem item &&
-                   Product == item.Product &&
-                   Quantity == item.Quantity &&
-                   Price == item.Price;
-        }
     }
 }
