@@ -1,4 +1,8 @@
+using BackendChallenge.Api.Facades.Interfaces;
+using BackendChallenge.Api.Facades;
 using BackendChallenge.Api.Services.Database;
+using BackendChallenge.Api.Services.Producer;
+using BackendChallenge.Api.Services.Producer.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Configuration;
 
@@ -20,6 +24,9 @@ builder.Services.AddEntityFrameworkNpgsql()
                            npgsqlOptions.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName);
                        })
                );
+
+builder.Services.AddSingleton<IRabbitMQProducer, RabbitMQProducer>();
+builder.Services.AddSingleton<IProducerFacade, ProducerFacade>();
 
 var app = builder.Build();
 

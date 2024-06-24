@@ -14,7 +14,7 @@ namespace BackendChallenge.Api.Models.Entity
 
         public double Total { get; set; }
 
-        public List<OrderItem> Itens { get; set; }
+        public List<Products> Itens { get; set; }
 
     }
 }

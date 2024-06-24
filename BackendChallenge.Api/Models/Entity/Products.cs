@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BackendChallenge.Api.Models.Entity
 {
-    public class OrderItem
+    public class Products
     {
 
         [Key]
@@ -15,7 +15,7 @@ namespace BackendChallenge.Api.Models.Entity
 
         public int Price { get; set; }
 
-        public OrderItem(string product, int quantity, int price)
+        public Products(string product, int quantity, int price)
         {
             Product = product;
             Quantity = quantity;
