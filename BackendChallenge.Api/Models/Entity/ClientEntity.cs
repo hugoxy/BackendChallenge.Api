@@ -7,7 +7,7 @@ namespace BackendChallenge.Api.Models.Entity
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
+        public int ClientId { get; set; }
 
         public string User { get; set; }
 

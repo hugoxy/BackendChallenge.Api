@@ -1,6 +1,5 @@
 using BackendChallenge.Api.Models.Entity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace BackendChallenge.Api.Services.Database
 {
@@ -15,6 +14,7 @@ namespace BackendChallenge.Api.Services.Database
         }
 
         public DbSet<OrderEntity> Order { get; set; }
+        public DbSet<ClientEntity> Client { get; set; } 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

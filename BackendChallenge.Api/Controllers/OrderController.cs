@@ -16,10 +16,12 @@ namespace BackendChallenge.Api.Controllers
             _logger = logger;
         }
 
-        [HttpGet(Name = "GetOrders")]
+        [HttpGet()]
         public List<OrderEntity> Get()
         {
+            _logger.LogInformation("Get orders");
             return null;
         }
+
     }
 }
