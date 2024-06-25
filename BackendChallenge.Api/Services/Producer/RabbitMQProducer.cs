@@ -25,7 +25,7 @@ namespace BackendChallenge.Api.Services.Producer
         }
         public void SendCommand<T>(string methodName, T message)
         {
-            var queueName = $"{methodName}_queue";
+            var queueName = $"{methodName}";
 
             _logger.LogInformation("Sending command '{MethodName}' to RabbitMQ: {@Message}", methodName, message);
 

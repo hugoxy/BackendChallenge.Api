@@ -14,7 +14,8 @@ namespace BackendChallenge.Api.Services.Database
         }
 
         public DbSet<OrderEntity> Order { get; set; }
-        public DbSet<ClientEntity> Client { get; set; } 
+        public DbSet<ClientEntity> Client { get; set; }
+        public DbSet<ProductsEntity> Product { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

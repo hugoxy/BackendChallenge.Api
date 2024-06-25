@@ -1,6 +1,11 @@
 using BackendChallenge.Api.Services.Database;
+using BackendChallenge.Api.Services.Repositories.Interfaces;
+using BackendChallenge.Api.Services.Repositories;
 using BackendChallenge.MicroServices.Consumers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using BackendChallenge.MicroServices.Consumers.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,8 +23,10 @@ builder.Services.AddEntityFrameworkNpgsql()
                            npgsqlOptions.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName);
                        })
                );
-
-builder.Services.AddSingleton<RabbitMQConsumer>();
+//builder.Services.AddScoped<RabbitMQConsumer>();
+builder.Services.AddRabbitMQConsumer();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IClientRepository, ClientRepository>();
 
 var app = builder.Build();
 
@@ -28,6 +35,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 var consumer = app.Services.GetRequiredService<RabbitMQConsumer>();
-consumer.StartConsuming("nome_da_fila"); // Substitua "nome_da_fila" pelo nome da fila que deseja ouvir
+consumer.StartConsuming();
 
 app.Run();
