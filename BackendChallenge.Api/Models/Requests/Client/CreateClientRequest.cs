@@ -1,12 +1,10 @@
-﻿namespace BackendChallenge.Api.Models.Requests.Client
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BackendChallenge.Api.Models.Requests.Client
 {
     public class CreateClientRequest
     {
+        [Required]
         public string User { get; set; }
-
-        public CreateClientRequest(string user)
-        {
-            User = user;
-        }
     }
 }

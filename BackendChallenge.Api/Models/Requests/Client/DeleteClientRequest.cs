@@ -1,7 +1,10 @@
-﻿namespace BackendChallenge.Api.Models.Requests.Client
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BackendChallenge.Api.Models.Requests.Client
 {
     internal class DeleteClientRequest
     {
-        public int Id { get; set; }
+        [Required]
+        public int ClientId { get; set; }
     }
 }

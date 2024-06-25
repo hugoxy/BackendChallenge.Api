@@ -1,9 +1,7 @@
 using BackendChallenge.Api.Facades.Interfaces;
-using BackendChallenge.Api.Models.Entity;
+using BackendChallenge.Api.Models;
 using BackendChallenge.Api.Models.Requests.Order;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System;
 
 namespace BackendChallenge.Api.Controllers
 {
@@ -25,7 +23,7 @@ namespace BackendChallenge.Api.Controllers
         {
             try
             {
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                _producerFacade.SendCommand(CrudOperation.CreateOrder, request);
                 _logger.LogInformation("CreateOrder command sent to RabbitMQ.");
                 return Ok("CreateOrder command sent.");
             }
@@ -37,12 +35,12 @@ namespace BackendChallenge.Api.Controllers
         }
 
         [HttpGet("/orders/{id}")]
-        public IActionResult GetOrder(int id)
+        public IActionResult GetOrderById(int id)
         {
             try
             {
                 var request = new ReadOrderRequest { OrderId = id };
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                _producerFacade.SendCommand(CrudOperation.ReadOrder, request);
                 _logger.LogInformation("ReadOrder command sent to RabbitMQ.");
                 return Ok("ReadOrder command sent.");
             }
@@ -59,7 +57,7 @@ namespace BackendChallenge.Api.Controllers
             try
             {
                 request.OrderId = id;
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                _producerFacade.SendCommand(CrudOperation.UpdateOrder, request);
                 _logger.LogInformation("UpdateOrder command sent to RabbitMQ.");
                 return Ok("UpdateOrder command sent.");
             }
@@ -76,7 +74,7 @@ namespace BackendChallenge.Api.Controllers
             try
             {
                 var request = new DeleteOrderRequest { OrderId = id };
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                _producerFacade.SendCommand(CrudOperation.DeleteOrder, request);
                 _logger.LogInformation("DeleteOrder command sent to RabbitMQ.");
                 return Ok("DeleteOrder command sent.");
             }

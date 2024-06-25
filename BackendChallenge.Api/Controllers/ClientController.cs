@@ -1,12 +1,7 @@
-using BackendChallenge.Api.Facades;
 using BackendChallenge.Api.Facades.Interfaces;
-using BackendChallenge.Api.Models.Entity;
+using BackendChallenge.Api.Models;
 using BackendChallenge.Api.Models.Requests.Client;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace BackendChallenge.Api.Controllers
 {
@@ -22,13 +17,12 @@ namespace BackendChallenge.Api.Controllers
             _logger = logger;
             _producerFacade = producerFacade;
         }
-
         [HttpPost("/client/")]
         public IActionResult CreateClient([FromBody] CreateClientRequest request)
         {
             try
             {
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                _producerFacade.SendCommand(CrudOperation.CreateClient, request);
                 _logger.LogInformation("CreateClient command sent to RabbitMQ.");
                 return Ok("CreateClient command sent.");
             }
@@ -39,12 +33,12 @@ namespace BackendChallenge.Api.Controllers
             }
         }
         [HttpGet("/client/{id}")]
-        public IActionResult GetClient(int id)
+        public IActionResult GetClientById(int id)
         {
             try
             {
-                var request = new ReadClientRequest { Id = id };
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                var request = new ReadClientRequest { ClientId = id };
+                _producerFacade.SendCommand(CrudOperation.ReadClient, request);
                 _logger.LogInformation("ReadClient command sent to RabbitMQ.");
                 return Ok("ReadClient command sent.");
             }
@@ -60,7 +54,7 @@ namespace BackendChallenge.Api.Controllers
         {
             try
             {
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                _producerFacade.SendCommand(CrudOperation.UpdateClient, request);
                 _logger.LogInformation("UpdateClient command sent to RabbitMQ.");
                 return Ok("UpdateClient command sent.");
             }
@@ -76,8 +70,8 @@ namespace BackendChallenge.Api.Controllers
         {
             try
             {
-                var request = new DeleteClientRequest { Id = id };
-                _producerFacade.SendCommand(System.Reflection.MethodBase.GetCurrentMethod().Name.ToLower(), request);
+                var request = new DeleteClientRequest { ClientId = id };
+                _producerFacade.SendCommand(CrudOperation.DeleteClient, request);
                 _logger.LogInformation("DeleteClient command sent to RabbitMQ.");
                 return Ok("DeleteClient command sent.");
             }

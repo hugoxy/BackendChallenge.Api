@@ -1,24 +1,33 @@
+using BackendChallenge.Api.Services.Database;
+using BackendChallenge.MicroServices.Consumers;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
+var cs = builder.Configuration.GetConnectionString("PostgreSQL");
+builder.Services.AddEntityFrameworkNpgsql()
+               .AddDbContext<OrderDbContext>(options => options
+                   .UseNpgsql(
+                       cs,
+                       npgsqlOptions =>
+                       {
+                           npgsqlOptions.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName);
+                       })
+               );
+
+builder.Services.AddSingleton<RabbitMQConsumer>();
 
 var app = builder.Build();
 
-///builder.Services.AddSwaggerGen();
-//if (app.Environment.IsDevelopment())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI();
-//}
-
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
+
+var consumer = app.Services.GetRequiredService<RabbitMQConsumer>();
+consumer.StartConsuming("nome_da_fila"); // Substitua "nome_da_fila" pelo nome da fila que deseja ouvir
 
 app.Run();
