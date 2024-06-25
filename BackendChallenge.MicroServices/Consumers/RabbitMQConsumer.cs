@@ -95,7 +95,7 @@ namespace BackendChallenge.MicroServices.Consumers
                             _logger.LogInformation("Received message from unknown queue: {QueueName}. Message: {Message}", queueName, message);
                             break;
                     }
-                
+
                 };
 
                 channel.BasicConsume(queue: queueName,
@@ -171,3 +171,4 @@ namespace BackendChallenge.MicroServices.Consumers
             throw new NotImplementedException();
         }
     }
+}
