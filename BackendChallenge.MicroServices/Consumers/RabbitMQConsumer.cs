@@ -7,6 +7,10 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using BackendChallenge.Api.Models.Requests.Products;
+using BackendChallenge.Api.Models.Requests.Client;
+using BackendChallenge.Api.Models.Requests.Order;
+
 
 namespace BackendChallenge.MicroServices.Consumers
 {
@@ -131,8 +135,8 @@ namespace BackendChallenge.MicroServices.Consumers
             try
             {
 
-                var productId = int.Parse(message);
-                var product = await dbContext.Product.FindAsync(productId);
+                var request = JsonConvert.DeserializeObject<DeleteProductRequest>(message);
+                var product = await dbContext.Product.FindAsync(request.ProductId);
                 if (product != null)
                 {
                     dbContext.Product.Remove(product);
@@ -162,13 +166,13 @@ namespace BackendChallenge.MicroServices.Consumers
 
             try
             {
-                var updatedProduct = JsonConvert.DeserializeObject<ProductsEntity>(message);
-                var existingProduct = await dbContext.Product.FindAsync(updatedProduct.Id);
+                var request = JsonConvert.DeserializeObject<UpdateProductRequest>(message);
+                var existingProduct = await dbContext.Product.FindAsync(request.ProductId);
                 if (existingProduct != null)
                 {
-                    existingProduct.ProductName = updatedProduct.ProductName;
-                    existingProduct.Quantity = updatedProduct.Quantity;
-                    existingProduct.Price = updatedProduct.Price;
+                    existingProduct.ProductName = request.ProductName;
+                    existingProduct.Quantity = request.Quantity;
+                    existingProduct.Price = request.Price;
 
                     await dbContext.SaveChangesAsync();
 
@@ -177,7 +181,7 @@ namespace BackendChallenge.MicroServices.Consumers
                 }
                 else
                 {
-                    _logger.LogWarning("Product with ID {ProductId} not found for update.", updatedProduct.Id);
+                    _logger.LogWarning("Product with ID {ProductId} not found for update.", request.ProductId);
                 }
             }
             catch (Exception ex)
@@ -192,15 +196,15 @@ namespace BackendChallenge.MicroServices.Consumers
             _logger.LogInformation("Processing ReadProductMessage: {message}", message);
             try
             {
-                var productId = int.Parse(message);
-                var product = await dbContext.Product.FindAsync(productId);
+                var request = JsonConvert.DeserializeObject<ReadProductRequest>(message);
+                var product = await dbContext.Product.FindAsync(request.ProductId);
                 if (product != null)
                 {
                     _logger.LogInformation("ReadProductMessage found product: {Product}", JsonConvert.SerializeObject(product));
                 }
                 else
                 {
-                    _logger.LogWarning("Product with ID {ProductId} not found for reading.", productId);
+                    _logger.LogWarning("Product with ID {ProductId} not found for reading.", request.ProductId);
                 }
             }
             catch (Exception ex)
@@ -244,8 +248,8 @@ namespace BackendChallenge.MicroServices.Consumers
             try
             {
 
-                var orderId = int.Parse(message);
-                var order = await dbContext.Order.FindAsync(orderId);
+                var request = JsonConvert.DeserializeObject<DeleteOrderRequest>(message);
+                var order = await dbContext.Order.FindAsync(request.OrderId);
                 if (order != null)
                 {
                     dbContext.Order.Remove(order);
@@ -256,7 +260,7 @@ namespace BackendChallenge.MicroServices.Consumers
                 }
                 else
                 {
-                    _logger.LogWarning("Order with ID {OrderId} not found for deletion.", orderId);
+                    _logger.LogWarning("Order with ID {OrderId} not found for deletion.", request.OrderId);
                 }
             }
             catch (Exception ex)
@@ -301,18 +305,17 @@ namespace BackendChallenge.MicroServices.Consumers
         {
             _logger.LogInformation("Processing ReadOrderMessage: {message}", message);
 
-            var orderId = int.Parse(message); 
-
             try
             {
-                var order = await dbContext.Order.FindAsync(orderId);
+                var request = JsonConvert.DeserializeObject<ReadOrderRequest>(message);
+                var order = await dbContext.Order.FindAsync(request.OrderId);
                 if (order != null)
                 {
                     _logger.LogInformation("ReadOrderMessage found order: {Order}", JsonConvert.SerializeObject(order));
                 }
                 else
                 {
-                    _logger.LogWarning("Order with ID {OrderId} not found for reading.", orderId);
+                    _logger.LogWarning("Order with ID {OrderId} not found for reading.", request.OrderId);
                 }
             }
             catch (Exception ex)
@@ -325,13 +328,13 @@ namespace BackendChallenge.MicroServices.Consumers
         {
             _logger.LogInformation("Processing CreateOrderMessage: {message}", message);
 
-            var order = JsonConvert.DeserializeObject<OrderEntity>(message);
-
             // Adicionar ao contexto do EF Core e salvar no banco de dados dentro de uma transação
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
             try
             {
+
+                var order = JsonConvert.DeserializeObject<OrderEntity>(message);
                 await dbContext.Order.AddAsync(order);
                 await dbContext.SaveChangesAsync();
 
@@ -349,14 +352,13 @@ namespace BackendChallenge.MicroServices.Consumers
         {
             _logger.LogInformation("Processing DeleteClientMessage: {message}", message);
 
-            var clientId = int.Parse(message);
-
             // Adicionar ao contexto do EF Core e salvar no banco de dados dentro de uma transação
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
             try
             {
-                var client = await dbContext.Client.FindAsync(clientId);
+                var request = JsonConvert.DeserializeObject<DeleteClientRequest>(message);
+                var client = await dbContext.Client.FindAsync(request.ClientId);
                 if (client != null)
                 {
                     dbContext.Client.Remove(client);
@@ -381,13 +383,12 @@ namespace BackendChallenge.MicroServices.Consumers
         {
             _logger.LogInformation("Processing UpdateClientMessage: {message}", message);
 
-            var updatedClient = JsonConvert.DeserializeObject<ClientEntity>(message);
-
             // Adicionar ao contexto do EF Core e salvar no banco de dados dentro de uma transação
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
             try
             {
+                var updatedClient = JsonConvert.DeserializeObject<ClientEntity>(message);
                 var existingClient = await dbContext.Client.FindAsync(updatedClient.ClientId);
                 if (existingClient != null)
                 {
@@ -414,11 +415,10 @@ namespace BackendChallenge.MicroServices.Consumers
         {
             _logger.LogInformation("Processing ReadClientMessage: {message}", message);
 
-            var clientId = int.Parse(message); 
-
             try
             {
-                var client = await dbContext.Client.FindAsync(clientId);
+                var request = JsonConvert.DeserializeObject<ReadClientRequest>(message);
+                var client = await dbContext.Client.FindAsync(request.ClientId);
                 if (client != null)
                 {
                     _logger.LogInformation("ReadClientMessage found client: {Client}", JsonConvert.SerializeObject(client));
@@ -439,13 +439,12 @@ namespace BackendChallenge.MicroServices.Consumers
         {
             _logger.LogInformation("Processing CreateClientMessage: {message}", message);
 
-            var client = JsonConvert.DeserializeObject<ClientEntity>(message);
-
             // Adicionar ao contexto do EF Core e salvar no banco de dados dentro de uma transação
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
             try
             {
+                var client = JsonConvert.DeserializeObject<ClientEntity>(message);
                 await dbContext.Client.AddAsync(client);
                 await dbContext.SaveChangesAsync();
 

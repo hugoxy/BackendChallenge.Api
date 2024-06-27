@@ -2,7 +2,7 @@
 
 namespace BackendChallenge.Api.Models.Requests.Products
 {
-    internal class ReadProductRequest
+    public class ReadProductRequest
     {
         [Required]
         public int ProductId { get; set; }

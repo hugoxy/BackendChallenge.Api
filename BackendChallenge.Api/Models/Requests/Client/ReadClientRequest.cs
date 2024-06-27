@@ -2,7 +2,7 @@
 
 namespace BackendChallenge.Api.Models.Requests.Client
 {
-    internal class ReadClientRequest
+    public class ReadClientRequest
     {
         [Required]
         public int ClientId { get; set; }

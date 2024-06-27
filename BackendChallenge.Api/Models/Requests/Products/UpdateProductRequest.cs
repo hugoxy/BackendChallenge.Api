@@ -8,7 +8,7 @@ namespace BackendChallenge.Api.Models.Requests.Products
         public int ProductId { get; set; }
 
         [Required]
-        public string Product { get; set; }
+        public string ProductName { get; set; }
 
         [Required]
         public int Quantity { get; set; }

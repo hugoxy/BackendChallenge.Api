@@ -66,46 +66,5 @@ namespace BackendChallenge.Api.Services.Producer
                 throw;
             }
         }
-        public void SendMessage<T>(T message)
-        {
-            _logger.LogInformation("Sending message to RabbitMQ: {@Message}", message);
-
-            var factory = new ConnectionFactory()
-            {
-                HostName = _hostname,
-                UserName = _userName,
-                Password = _password
-            };
-
-            try
-            {
-                using var connection = factory.CreateConnection();
-                _logger.LogInformation("RabbitMQ connection created.");
-
-                using var channel = connection.CreateModel();
-                _logger.LogInformation("RabbitMQ channel created.");
-
-                channel.QueueDeclare(queue: _queueName,
-                                     durable: false,
-                                     exclusive: false,
-                                     autoDelete: false,
-                                     arguments: null);
-                _logger.LogInformation("Queue declared: {QueueName}", _queueName);
-
-                var messageJson = JsonConvert.SerializeObject(message);
-                var body = Encoding.UTF8.GetBytes(messageJson);
-
-                channel.BasicPublish(exchange: "",
-                                     routingKey: _queueName,
-                                     basicProperties: null,
-                                     body: body);
-                _logger.LogInformation("Message published to queue: {QueueName}", _queueName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while sending message to RabbitMQ.");
-                throw;
-            }
-        }
     }
 }

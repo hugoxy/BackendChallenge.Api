@@ -2,7 +2,7 @@
 
 namespace BackendChallenge.Api.Models.Requests.Client
 {
-    internal class DeleteClientRequest
+    public class DeleteClientRequest
     {
         [Required]
         public int ClientId { get; set; }

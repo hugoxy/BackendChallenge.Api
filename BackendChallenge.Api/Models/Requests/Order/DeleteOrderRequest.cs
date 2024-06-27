@@ -2,7 +2,7 @@
 
 namespace BackendChallenge.Api.Models.Requests.Order
 {
-    internal class DeleteOrderRequest
+    public class DeleteOrderRequest
     {
         [Required]
         public int OrderId { get; set; }

@@ -2,7 +2,7 @@
 
 namespace BackendChallenge.Api.Models.Requests.Products
 {
-    internal class DeleteProductRequest
+    public class DeleteProductRequest
     {
         [Required]
         public int ProductId { get; set; }
