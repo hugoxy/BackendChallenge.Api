@@ -147,7 +147,7 @@ namespace BackendChallenge.MicroServices.Consumers
                 }
                 else
                 {
-                    _logger.LogWarning("Product with ID {ProductId} not found for deletion.", productId);
+                    _logger.LogWarning("Product with ID {ProductId} not found for deletion.", request.ProductId);
                 }
             }
             catch (Exception ex)
@@ -369,7 +369,7 @@ namespace BackendChallenge.MicroServices.Consumers
                 }
                 else
                 {
-                    _logger.LogWarning("Client with ID {ClientId} not found for deletion.", clientId);
+                    _logger.LogWarning("Client with ID {ClientId} not found for deletion.", request.ClientId);
                 }
             }
             catch (Exception ex)
