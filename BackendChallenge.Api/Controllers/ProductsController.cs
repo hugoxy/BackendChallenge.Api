@@ -2,23 +2,41 @@
 using BackendChallenge.Api.Models;
 using BackendChallenge.Api.Models.Requests.Products;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace BackendChallenge.Api.Controllers
 {
+    /// <summary>
+    /// Controller for managing product operations.
+    /// </summary>
     [ApiController]
     [Route("[controller]")]
+    [ApiExplorerSettings(GroupName = "v1")]
     public class ProductsController : ControllerBase
     {
         private readonly ILogger<ProductsController> _logger;
         private readonly IProducerFacade _producerFacade;
 
+        /// <summary>
+        /// Constructor for the ProductsController.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="producerFacade">The producer facade instance.</param>
         public ProductsController(ILogger<ProductsController> logger, IProducerFacade producerFacade)
         {
             _logger = logger;
             _producerFacade = producerFacade;
         }
 
+        /// <summary>
+        /// Creates a new product.
+        /// </summary>
+        /// <param name="request">The request containing product data.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpPost("/products")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult CreateProduct([FromBody] CreateProductRequest request)
         {
             try
@@ -34,7 +52,14 @@ namespace BackendChallenge.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves a product by ID.
+        /// </summary>
+        /// <param name="id">The ID of the product.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpGet("/products/{id}")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult GetProductById(int id)
         {
             try
@@ -51,7 +76,15 @@ namespace BackendChallenge.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Updates an existing product.
+        /// </summary>
+        /// <param name="id">The ID of the product to update.</param>
+        /// <param name="request">The request containing updated product data.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpPut("/products/{id}")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult UpdateProduct(int id, [FromBody] UpdateProductRequest request)
         {
             try
@@ -68,7 +101,14 @@ namespace BackendChallenge.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Deletes a product by ID.
+        /// </summary>
+        /// <param name="id">The ID of the product to delete.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpDelete("/products/{id}")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult DeleteProduct(int id)
         {
             try

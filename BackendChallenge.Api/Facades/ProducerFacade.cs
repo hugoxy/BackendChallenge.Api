@@ -12,14 +12,9 @@ namespace BackendChallenge.Api.Facades
             _rabbitMQProducer = rabbitMQProducer;
         }
 
-        public void SendMessage<T>(T message)
+        public void SendCommand<T>(string methodName,T message)
         {
-            _rabbitMQProducer.SendMessage(message);
-        }
-
-        public void SendCommand<T>(string method,T message)
-        {
-            _rabbitMQProducer.SendCommand(method,message);
+            _rabbitMQProducer.SendCommand(methodName, message);
         }
     }
 }

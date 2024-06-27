@@ -5,19 +5,36 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BackendChallenge.Api.Controllers
 {
+    /// <summary>
+    /// Controller for managing client operations.
+    /// </summary>
     [ApiController]
     [Route("[controller]")]
+    [ApiExplorerSettings(GroupName = "v1")]
     public class ClientController : ControllerBase
     {
         private readonly ILogger<ClientController> _logger;
         private readonly IProducerFacade _producerFacade;
 
+        /// <summary>
+        /// Constructor for the ClientController.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="producerFacade">The producer facade instance.</param>
         public ClientController(ILogger<ClientController> logger, IProducerFacade producerFacade)
         {
             _logger = logger;
             _producerFacade = producerFacade;
         }
+
+        /// <summary>
+        /// Creates a new client.
+        /// </summary>
+        /// <param name="request">The request containing client data.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpPost("/client/")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult CreateClient([FromBody] CreateClientRequest request)
         {
             try
@@ -32,7 +49,15 @@ namespace BackendChallenge.Api.Controllers
                 return StatusCode(500, "An error occurred while processing the request.");
             }
         }
+
+        /// <summary>
+        /// Retrieves a client by ID.
+        /// </summary>
+        /// <param name="id">The ID of the client.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpGet("/client/{id}")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult GetClientById(int id)
         {
             try
@@ -49,7 +74,14 @@ namespace BackendChallenge.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Updates an existing client.
+        /// </summary>
+        /// <param name="request">The request containing updated client data.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpPut("/client/{id}")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult UpdateClient([FromBody] UpdateClientRequest request)
         {
             try
@@ -65,7 +97,14 @@ namespace BackendChallenge.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Deletes a client by ID.
+        /// </summary>
+        /// <param name="id">The ID of the client to delete.</param>
+        /// <returns>A confirmation message.</returns>
         [HttpDelete("/client/{id}")]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
         public IActionResult DeleteClient(int id)
         {
             try
@@ -81,6 +120,5 @@ namespace BackendChallenge.Api.Controllers
                 return StatusCode(500, "An error occurred while processing the request.");
             }
         }
-
     }
 }
