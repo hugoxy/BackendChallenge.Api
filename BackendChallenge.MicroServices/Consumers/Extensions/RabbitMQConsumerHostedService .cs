@@ -24,7 +24,6 @@
             {
                 return;
             }
-
             try
             {
                 _cts.Cancel();
