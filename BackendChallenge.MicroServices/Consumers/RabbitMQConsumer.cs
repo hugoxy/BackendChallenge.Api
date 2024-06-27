@@ -425,7 +425,7 @@ namespace BackendChallenge.MicroServices.Consumers
                 }
                 else
                 {
-                    _logger.LogWarning("Client with ID {ClientId} not found for reading.", clientId);
+                    _logger.LogWarning("Client with ID {ClientId} not found for reading.", request.ClientId);
                 }
             }
             catch (Exception ex)
