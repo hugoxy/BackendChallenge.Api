@@ -1,6 +1,9 @@
 ﻿using System.Text;
 using BackendChallenge.Api.Models;
+using BackendChallenge.Api.Services.Database;
 using BackendChallenge.Api.Services.Repositories.Interfaces;
+using BackendChallenge.MicroServices.Models;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -8,30 +11,32 @@ namespace BackendChallenge.MicroServices.Consumers
 {
     public class RabbitMQConsumer
     {
-        private readonly string _hostname;
-        private readonly string _userName;
-        private readonly string _password;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<RabbitMQConsumer> _logger;
-        private readonly IOrderRepository _orderRepository;
-        private readonly IClientRepository _clientRepository;
+        private readonly RabbitMQSettings _rabbitMQSettings;
 
-        public RabbitMQConsumer(ILogger<RabbitMQConsumer> logger, IOrderRepository orderRepository, IClientRepository clientRepository, IConfiguration configuration)
+        public RabbitMQConsumer(IServiceScopeFactory scopeFactory, ILogger<RabbitMQConsumer> logger, IOptions<RabbitMQSettings> rabbitMQSettings)
         {
+            _scopeFactory = scopeFactory;
             _logger = logger;
-            _orderRepository = orderRepository;
-            _clientRepository = clientRepository;
-            _hostname = configuration["RabbitMQ:HostName"];
-            _userName = configuration["RabbitMQ:UserName"];
-            _password = configuration["RabbitMQ:Password"];
+            _rabbitMQSettings = rabbitMQSettings.Value;
         }
 
-        public void StartConsuming()
+        public Task StartConsumingAsync(CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Starting RabbitMQConsumer Service");
+            return ConsumeAsync(cancellationToken);
+        }
+
+        private async Task ConsumeAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Starting ConsumeAsync Service");
+
             var factory = new ConnectionFactory()
             {
-                HostName = _hostname,
-                UserName = _userName,
-                Password = _password
+                HostName = _rabbitMQSettings.HostName,
+                UserName = _rabbitMQSettings.UserName,
+                Password = _rabbitMQSettings.Password
             };
 
             using var connection = factory.CreateConnection();
@@ -50,123 +55,131 @@ namespace BackendChallenge.MicroServices.Consumers
                 var consumer = new EventingBasicConsumer(channel);
                 consumer.Received += async (sender, ea) =>
                 {
-                    var body = ea.Body.ToArray();
-                    var message = Encoding.UTF8.GetString(body);
-
-                    switch (queueName)
+                    using (var scope = _scopeFactory.CreateScope())
                     {
-                        case CrudOperation.CreateClient:
-                            await ProcessCreateClientMessageAsync(message);
-                            break;
-                        case CrudOperation.ReadClient:
-                            await ProcessReadClientMessageAsync(message);
-                            break;
-                        case CrudOperation.UpdateClient:
-                            await ProcessUpdateClientMessageAsync(message);
-                            break;
-                        case CrudOperation.DeleteClient:
-                            await ProcessDeleteClientMessageAsync(message);
-                            break;
-                        case CrudOperation.CreateOrder:
-                            await ProcessCreateOrderMessageAsync(message);
-                            break;
-                        case CrudOperation.ReadOrder:
-                            await ProcessReadOrderMessageAsync(message);
-                            break;
-                        case CrudOperation.UpdateOrder:
-                            await ProcessUpdateOrderMessageAsync(message);
-                            break;
-                        case CrudOperation.DeleteOrder:
-                            await ProcessDeleteOrderMessageAsync(message);
-                            break;
-                        case CrudOperation.CreateProduct:
-                            await ProcessCreateProductMessageAsync(message);
-                            break;
-                        case CrudOperation.ReadProduct:
-                            await ProcessReadProductMessageAsync(message);
-                            break;
-                        case CrudOperation.UpdateProduct:
-                            await ProcessUpdateProductMessageAsync(message);
-                            break;
-                        case CrudOperation.DeleteProduct:
-                            await ProcessDeleteProductMessageAsync(message);
-                            break;
-                        default:
-                            _logger.LogInformation("Received message from unknown queue: {QueueName}. Message: {Message}", queueName, message);
-                            break;
-                    }
+                        var dbContext = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
 
+                        var body = ea.Body.ToArray();
+                        var message = Encoding.UTF8.GetString(body);
+
+                        try
+                        {
+                            switch (queueName)
+                            {
+                                case CrudOperation.CreateClient:
+                                    await ProcessCreateClientMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.ReadClient:
+                                    await ProcessReadClientMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.UpdateClient:
+                                    await ProcessUpdateClientMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.DeleteClient:
+                                    await ProcessDeleteClientMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.CreateOrder:
+                                    await ProcessCreateOrderMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.ReadOrder:
+                                    await ProcessReadOrderMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.UpdateOrder:
+                                    await ProcessUpdateOrderMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.DeleteOrder:
+                                    await ProcessDeleteOrderMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.CreateProduct:
+                                    await ProcessCreateProductMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.ReadProduct:
+                                    await ProcessReadProductMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.UpdateProduct:
+                                    await ProcessUpdateProductMessageAsync(message, dbContext);
+                                    break;
+                                case CrudOperation.DeleteProduct:
+                                    await ProcessDeleteProductMessageAsync(message, dbContext);
+                                    break;
+                                default:
+                                    _logger.LogInformation("Received message from unknown queue: {QueueName}. Message: {Message}", queueName, message);
+                                    break;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error processing message: {Message}", message);
+                        }
+                    }
                 };
 
                 channel.BasicConsume(queue: queueName,
                                      autoAck: true,
                                      consumer: consumer);
 
-                _logger.LogInformation("Consumer started. Listening on queue: {QueuesName}", queueName);
+                _logger.LogInformation("Consumer started. Listening on queue: {QueueName}", queueName);
             }
 
-            while (true)
-            {
-                Thread.Sleep(1000);
-            }
+            await Task.Delay(Timeout.Infinite, cancellationToken);
         }
 
-        private async Task ProcessDeleteProductMessageAsync(string message)
+        private async Task ProcessDeleteProductMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessUpdateProductMessageAsync(string message)
+        private async Task ProcessUpdateProductMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessReadProductMessageAsync(string message)
+        private async Task ProcessReadProductMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessCreateProductMessageAsync(string message)
+        private async Task ProcessCreateProductMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessDeleteOrderMessageAsync(string message)
+        private async Task ProcessDeleteOrderMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessUpdateOrderMessageAsync(string message)
+        private async Task ProcessUpdateOrderMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessReadOrderMessageAsync(string message)
+        private async Task ProcessReadOrderMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessCreateOrderMessageAsync(string message)
+        private async Task ProcessCreateOrderMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessDeleteClientMessageAsync(string message)
+        private async Task ProcessDeleteClientMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessUpdateClientMessageAsync(string message)
+        private async Task ProcessUpdateClientMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessReadClientMessageAsync(string message)
+        private async Task ProcessReadClientMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
 
-        private async Task ProcessCreateClientMessageAsync(string message)
+        private async Task ProcessCreateClientMessageAsync(string message, OrderDbContext dbContext)
         {
             throw new NotImplementedException();
         }
