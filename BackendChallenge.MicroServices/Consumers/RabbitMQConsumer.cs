@@ -63,15 +63,22 @@ namespace BackendChallenge.MicroServices.Consumers
                         var dbContext = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
                         var body = ea.Body.ToArray();
                         var message = Encoding.UTF8.GetString(body);
+
+                        // Properties para a resposta
+                        var replyTo = ea.BasicProperties.ReplyTo;
+                        var correlationId = ea.BasicProperties.CorrelationId;
+
                         try
                         {
+                            string responseMessage = string.Empty;
+
                             switch (queueName)
                             {
                                 case CrudOperation.CreateClient:
                                     await ProcessCreateClientMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.ReadClient:
-                                    await ProcessReadClientMessageAsync(message, dbContext);
+                                    responseMessage = await ProcessReadClientMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.UpdateClient:
                                     await ProcessUpdateClientMessageAsync(message, dbContext);
@@ -83,7 +90,7 @@ namespace BackendChallenge.MicroServices.Consumers
                                     await ProcessCreateOrderMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.ReadOrder:
-                                    await ProcessReadOrderMessageAsync(message, dbContext);
+                                    //responseMessage = await ProcessReadOrderMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.UpdateOrder:
                                     await ProcessUpdateOrderMessageAsync(message, dbContext);
@@ -95,7 +102,7 @@ namespace BackendChallenge.MicroServices.Consumers
                                     await ProcessCreateProductMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.ReadProduct:
-                                    await ProcessReadProductMessageAsync(message, dbContext);
+                                    //responseMessage = await ProcessReadProductMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.UpdateProduct:
                                     await ProcessUpdateProductMessageAsync(message, dbContext);
@@ -107,6 +114,17 @@ namespace BackendChallenge.MicroServices.Consumers
                                     _logger.LogInformation("Received message from unknown queue: {QueueName}. Message: {Message}", queueName, message);
                                     break;
                             }
+
+                            if (!string.IsNullOrEmpty(responseMessage) && replyTo != null)
+                            {
+                                var responseBytes = Encoding.UTF8.GetBytes(responseMessage);
+                                var responseProperties = channel.CreateBasicProperties();
+                                responseProperties.CorrelationId = correlationId;
+                                channel.BasicPublish(exchange: string.Empty,
+                                                     routingKey: replyTo,
+                                                     basicProperties: responseProperties,
+                                                     body: responseBytes);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -116,7 +134,7 @@ namespace BackendChallenge.MicroServices.Consumers
                 };
 
                 channel.BasicConsume(queue: queueName,
-                                     autoAck: true,
+                                     autoAck: false,
                                      consumer: consumer);
 
                 _logger.LogInformation("Consumer started. Listening on queue: {QueueName}", queueName);
@@ -124,6 +142,7 @@ namespace BackendChallenge.MicroServices.Consumers
 
             await Task.Delay(Timeout.Infinite, cancellationToken);
         }
+
 
         private async Task ProcessDeleteProductMessageAsync(string message, OrderDbContext dbContext)
         {
@@ -241,7 +260,7 @@ namespace BackendChallenge.MicroServices.Consumers
         private async Task ProcessDeleteOrderMessageAsync(string message, OrderDbContext dbContext)
         {
             _logger.LogInformation("Processing DeleteOrderMessage: {message}", message);
- 
+
             // Adicionar ao contexto do EF Core e salvar no banco de dados dentro de uma transação
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
 
@@ -305,8 +324,7 @@ namespace BackendChallenge.MicroServices.Consumers
         {
             _logger.LogInformation("Processing ReadOrderMessage: {message}", message);
 
-            try
-            {
+            
                 var request = JsonConvert.DeserializeObject<ReadOrderRequest>(message);
                 var order = await dbContext.Order.FindAsync(request.OrderId);
                 if (order != null)
@@ -317,11 +335,7 @@ namespace BackendChallenge.MicroServices.Consumers
                 {
                     _logger.LogWarning("Order with ID {OrderId} not found for reading.", request.OrderId);
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing ReadOrderMessage: {message}", message);
-            }
+           
         }
 
         private async Task ProcessCreateOrderMessageAsync(string message, OrderDbContext dbContext)
@@ -411,29 +425,27 @@ namespace BackendChallenge.MicroServices.Consumers
             }
         }
 
-        private async Task ProcessReadClientMessageAsync(string message, OrderDbContext dbContext)
+        private async Task<string> ProcessReadClientMessageAsync(string message, OrderDbContext dbContext)
         {
             _logger.LogInformation("Processing ReadClientMessage: {message}", message);
+            var request = JsonConvert.DeserializeObject<ReadClientRequest>(message);
+            var client = await dbContext.Client.FindAsync(request.ClientId);
 
-            try
+            if (client != null)
             {
-                var request = JsonConvert.DeserializeObject<ReadClientRequest>(message);
-                var client = await dbContext.Client.FindAsync(request.ClientId);
-                if (client != null)
+                var clientResponse = new ClientEntity
                 {
-                    _logger.LogInformation("ReadClientMessage found client: {Client}", JsonConvert.SerializeObject(client));
-                }
-                else
-                {
-                    _logger.LogWarning("Client with ID {ClientId} not found for reading.", request.ClientId);
-                }
+                    ClientId = client.ClientId,
+                    User = client.User
+                };
+                var responseMessage = JsonConvert.SerializeObject(clientResponse);
+                return responseMessage;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error processing ReadClientMessage: {message}", message);
+                return JsonConvert.SerializeObject(new { Error = "Client not found" });
             }
         }
-
 
         private async Task ProcessCreateClientMessageAsync(string message, OrderDbContext dbContext)
         {

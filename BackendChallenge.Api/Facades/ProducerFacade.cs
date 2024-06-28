@@ -16,5 +16,11 @@ namespace BackendChallenge.Api.Facades
         {
             _rabbitMQProducer.SendCommand(methodName, message);
         }
+
+        public async Task<string> SendCommandAndWaitForResponseAsync<T>(string methodName, T message)
+        {
+            var response = await _rabbitMQProducer.SendCommandAndWaitForResponseAsync(methodName, message);
+            return response;
+        }
     }
 }

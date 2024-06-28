@@ -58,14 +58,14 @@ namespace BackendChallenge.Api.Controllers
         [HttpGet("/client/{id}")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(500)]
-        public IActionResult GetClientById(int id)
+        public async Task<IActionResult> GetClientById(int id)
         {
             try
             {
                 var request = new ReadClientRequest { ClientId = id };
-                _producerFacade.SendCommand(CrudOperation.ReadClient, request);
+                var response = await _producerFacade.SendCommandAndWaitForResponseAsync(CrudOperation.ReadClient, request);
                 _logger.LogInformation("ReadClient command sent to RabbitMQ.");
-                return Ok("ReadClient command sent.");
+                return Ok(response);
             }
             catch (Exception ex)
             {
