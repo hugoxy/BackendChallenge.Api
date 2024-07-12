@@ -63,8 +63,8 @@ namespace BackendChallenge.Api.Controllers
             try
             {
                 var request = new ReadClientRequest { ClientId = id };
-                var response = await _producerFacade.SendCommandAndWaitForResponseAsync(CrudOperation.ReadClient, request);
                 _logger.LogInformation("ReadClient command sent to RabbitMQ.");
+                var response = await _producerFacade.SendCommandAndWaitForResponseAsync(CrudOperation.ReadClient, request);
                 return Ok(response);
             }
             catch (Exception ex)

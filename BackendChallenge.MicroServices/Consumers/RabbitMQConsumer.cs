@@ -90,7 +90,7 @@ namespace BackendChallenge.MicroServices.Consumers
                                     await ProcessCreateOrderMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.ReadOrder:
-                                    //responseMessage = await ProcessReadOrderMessageAsync(message, dbContext);
+                                    responseMessage = await ProcessReadOrderMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.UpdateOrder:
                                     await ProcessUpdateOrderMessageAsync(message, dbContext);
@@ -102,7 +102,7 @@ namespace BackendChallenge.MicroServices.Consumers
                                     await ProcessCreateProductMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.ReadProduct:
-                                    //responseMessage = await ProcessReadProductMessageAsync(message, dbContext);
+                                    responseMessage = await ProcessReadProductMessageAsync(message, dbContext);
                                     break;
                                 case CrudOperation.UpdateProduct:
                                     await ProcessUpdateProductMessageAsync(message, dbContext);
@@ -210,25 +210,29 @@ namespace BackendChallenge.MicroServices.Consumers
             }
         }
 
-        private async Task ProcessReadProductMessageAsync(string message, OrderDbContext dbContext)
+        private async Task<string> ProcessReadProductMessageAsync(string message, OrderDbContext dbContext)
         {
             _logger.LogInformation("Processing ReadProductMessage: {message}", message);
-            try
+
+            var request = JsonConvert.DeserializeObject<ReadProductRequest>(message);
+            var product = await dbContext.Product.FindAsync(request.ProductId);
+            if (product != null)
             {
-                var request = JsonConvert.DeserializeObject<ReadProductRequest>(message);
-                var product = await dbContext.Product.FindAsync(request.ProductId);
-                if (product != null)
+                var productResponse = new ProductsEntity
                 {
-                    _logger.LogInformation("ReadProductMessage found product: {Product}", JsonConvert.SerializeObject(product));
-                }
-                else
-                {
-                    _logger.LogWarning("Product with ID {ProductId} not found for reading.", request.ProductId);
-                }
+                    Id = product.Id,
+                    ProductName = product.ProductName,
+                    Quantity = product.Quantity,
+                    Price = product.Price,
+
+                };
+                var responseMessage = JsonConvert.SerializeObject(productResponse);
+                return responseMessage;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error processing ReadProductMessage: {message}", message);
+                _logger.LogWarning("Product with ID {ProductId} not found for reading.", request.ProductId);
+                return JsonConvert.SerializeObject(new { Error = "Order not found" });
             }
         }
 
@@ -246,7 +250,6 @@ namespace BackendChallenge.MicroServices.Consumers
             {
                 await dbContext.Product.AddAsync(product);
                 await dbContext.SaveChangesAsync();
-
                 await transaction.CommitAsync();
                 _logger.LogInformation("CreateProductMessage processed and saved to database.");
             }
@@ -320,22 +323,28 @@ namespace BackendChallenge.MicroServices.Consumers
             }
         }
 
-        private async Task ProcessReadOrderMessageAsync(string message, OrderDbContext dbContext)
+        private async Task<string> ProcessReadOrderMessageAsync(string message, OrderDbContext dbContext)
         {
             _logger.LogInformation("Processing ReadOrderMessage: {message}", message);
+            var request = JsonConvert.DeserializeObject<ReadOrderRequest>(message);
+            var order = await dbContext.Order.FindAsync(request.OrderId);
 
-            
-                var request = JsonConvert.DeserializeObject<ReadOrderRequest>(message);
-                var order = await dbContext.Order.FindAsync(request.OrderId);
-                if (order != null)
+            if (order != null)
+            {
+                var orderResponse = new OrderEntity
                 {
-                    _logger.LogInformation("ReadOrderMessage found order: {Order}", JsonConvert.SerializeObject(order));
-                }
-                else
-                {
-                    _logger.LogWarning("Order with ID {OrderId} not found for reading.", request.OrderId);
-                }
-           
+                    OrderId = order.OrderId,
+                    ClientId = order.ClientId,
+                    Total = order.Total,
+                    Itens = order.Itens
+                };
+                var responseMessage = JsonConvert.SerializeObject(orderResponse);
+                return responseMessage;
+            }
+            else
+            {
+                return JsonConvert.SerializeObject(new { Error = "Order not found" });
+            }
         }
 
         private async Task ProcessCreateOrderMessageAsync(string message, OrderDbContext dbContext)

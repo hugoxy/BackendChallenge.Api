@@ -15,6 +15,10 @@ namespace BackendChallenge.Api.Models.Entity
 
         public int Price { get; set; }
 
+        public ProductsEntity()
+        {
+        }
+
         public ProductsEntity(string productName, int quantity, int price)
         {
             ProductName = productName;

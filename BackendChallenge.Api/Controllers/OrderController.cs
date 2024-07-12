@@ -60,14 +60,14 @@ namespace BackendChallenge.Api.Controllers
         [HttpGet("/orders/{id}")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(500)]
-        public IActionResult GetOrderById(int id)
+        public async Task<IActionResult> GetOrderById(int id)
         {
             try
             {
                 var request = new ReadOrderRequest { OrderId = id };
-                _producerFacade.SendCommand(CrudOperation.ReadOrder, request);
                 _logger.LogInformation("ReadOrder command sent to RabbitMQ.");
-                return Ok("ReadOrder command sent.");
+                var response = await _producerFacade.SendCommandAndWaitForResponseAsync(CrudOperation.ReadOrder, request);
+                return Ok(response);
             }
             catch (Exception ex)
             {
