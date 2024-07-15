@@ -11,5 +11,9 @@ namespace BackendChallenge.Api.Models.Entity
 
         public string User { get; set; }
 
+        public string Mail { get; set; }
+
+        public string Password { get; set; }
+
     }
 }
