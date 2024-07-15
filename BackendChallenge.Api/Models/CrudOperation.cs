@@ -2,6 +2,7 @@
 {
     public static class CrudOperation
     {
+        public const string AuthorizeClient = "AuthorizeClient";
         public const string CreateClient = "CreateClient";
         public const string ReadClient = "ReadClient";
         public const string UpdateClient = "UpdateClient";

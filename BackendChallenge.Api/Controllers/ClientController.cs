@@ -1,6 +1,7 @@
 using BackendChallenge.Api.Facades.Interfaces;
 using BackendChallenge.Api.Models;
 using BackendChallenge.Api.Models.Requests.Client;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackendChallenge.Api.Controllers
@@ -28,11 +29,35 @@ namespace BackendChallenge.Api.Controllers
         }
 
         /// <summary>
+        /// Authorize a client.
+        /// </summary>
+        /// <returns>A JWT token.</returns>
+        [HttpPost("/authorize")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> AuthorizeClient(AuthorizeClientRequest client)
+        {
+            try
+            {
+                _logger.LogInformation("AuthorizeClient command sent to RabbitMQ.");
+                var response = await _producerFacade.SendCommandAndWaitForResponseAsync(CrudOperation.AuthorizeClient, client);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while sending AuthorizeClient command to RabbitMQ.");
+                return StatusCode(500, "An error occurred while processing the request.");
+            }
+        }
+
+        /// <summary>
         /// Creates a new client.
         /// </summary>
         /// <param name="request">The request containing client data.</param>
         /// <returns>A confirmation message.</returns>
         [HttpPost("/client/")]
+        [Authorize]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(500)]
         public IActionResult CreateClient([FromBody] CreateClientRequest request)
@@ -56,6 +81,7 @@ namespace BackendChallenge.Api.Controllers
         /// <param name="id">The ID of the client.</param>
         /// <returns>A confirmation message.</returns>
         [HttpGet("/client/{id}")]
+        [Authorize]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(500)]
         public async Task<IActionResult> GetClientById(int id)
@@ -80,6 +106,7 @@ namespace BackendChallenge.Api.Controllers
         /// <param name="request">The request containing updated client data.</param>
         /// <returns>A confirmation message.</returns>
         [HttpPut("/client/{id}")]
+        [Authorize]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(500)]
         public IActionResult UpdateClient([FromBody] UpdateClientRequest request)
@@ -103,6 +130,7 @@ namespace BackendChallenge.Api.Controllers
         /// <param name="id">The ID of the client to delete.</param>
         /// <returns>A confirmation message.</returns>
         [HttpDelete("/client/{id}")]
+        [Authorize]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(500)]
         public IActionResult DeleteClient(int id)

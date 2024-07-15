@@ -15,5 +15,19 @@ namespace BackendChallenge.Api.Models.Entity
 
         public string Password { get; set; }
 
+        public string Role { get; set; }
+
+        public ClientEntity()
+        {
+        }
+
+        public ClientEntity(int clientId, string user, string mail, string password, string role)
+        {
+            ClientId = clientId;
+            User = user;
+            Mail = mail;
+            Password = password;
+            Role = role;
+        }
     }
 }

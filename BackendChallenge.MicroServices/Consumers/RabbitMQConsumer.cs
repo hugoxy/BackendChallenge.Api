@@ -10,6 +10,10 @@ using RabbitMQ.Client.Events;
 using BackendChallenge.Api.Models.Requests.Products;
 using BackendChallenge.Api.Models.Requests.Client;
 using BackendChallenge.Api.Models.Requests.Order;
+using static BCrypt.Net.BCrypt;
+using BackendChallenge.Api.Models.Responses;
+using BackendChallenge.MicroServices.Services;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace BackendChallenge.MicroServices.Consumers
@@ -19,6 +23,7 @@ namespace BackendChallenge.MicroServices.Consumers
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<RabbitMQConsumer> _logger;
         private readonly RabbitMQSettings _rabbitMQSettings;
+        private const int WorkFactor = 12;
 
         public RabbitMQConsumer(IServiceScopeFactory scopeFactory, ILogger<RabbitMQConsumer> logger, IOptions<RabbitMQSettings> rabbitMQSettings)
         {
@@ -74,6 +79,9 @@ namespace BackendChallenge.MicroServices.Consumers
 
                             switch (queueName)
                             {
+                                case CrudOperation.AuthorizeClient:
+                                    responseMessage = await ProcessAuthorizeClientMessageAsync(message, dbContext);
+                                    break;
                                 case CrudOperation.CreateClient:
                                     await ProcessCreateClientMessageAsync(message, dbContext);
                                     break;
@@ -142,7 +150,6 @@ namespace BackendChallenge.MicroServices.Consumers
 
             await Task.Delay(Timeout.Infinite, cancellationToken);
         }
-
 
         private async Task ProcessDeleteProductMessageAsync(string message, OrderDbContext dbContext)
         {
@@ -442,10 +449,12 @@ namespace BackendChallenge.MicroServices.Consumers
 
             if (client != null)
             {
-                var clientResponse = new ClientEntity
+                var clientResponse = new ReadClientResponse
                 {
                     ClientId = client.ClientId,
-                    User = client.User
+                    User = client.User,
+                    Mail = client.Mail,
+                    Role = client.Role,
                 };
                 var responseMessage = JsonConvert.SerializeObject(clientResponse);
                 return responseMessage;
@@ -462,20 +471,60 @@ namespace BackendChallenge.MicroServices.Consumers
 
             // Adicionar ao contexto do EF Core e salvar no banco de dados dentro de uma transação
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
-
             try
             {
-                var client = JsonConvert.DeserializeObject<ClientEntity>(message);
-                await dbContext.Client.AddAsync(client);
-                await dbContext.SaveChangesAsync();
+                var request = JsonConvert.DeserializeObject<ClientEntity>(message);
+                var existingClient = await dbContext.Client.FirstOrDefaultAsync(c => c.Mail == request.Mail);
 
-                await transaction.CommitAsync();
-                _logger.LogInformation("CreateClientMessage processed and saved to database.");
+                if (existingClient == null)
+                {
+                    request.Password = HashPassword(request.Password, WorkFactor);
+                    await dbContext.Client.AddAsync(request);
+                    await dbContext.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                    _logger.LogInformation("CreateClientMessage processed and saved to database.");
+                }
+                else
+                {
+                    _logger.LogInformation("CreateClientMessage processed and not created user always exist on database. - {request}", request);
+                }
+
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error processing CreateClientMessage: {message}", message);
+            }
+        }
+
+        private async Task<string> ProcessAuthorizeClientMessageAsync(string message, OrderDbContext dbContext)
+        {
+            _logger.LogInformation("Processing AuthorizeClientMessage: {message}", message);
+            var request = JsonConvert.DeserializeObject<AuthorizeClientRequest>(message);
+            var client = await dbContext.Client.FirstOrDefaultAsync(c => c.Mail == request.Mail);
+
+            if (client != null)
+            {
+                bool isPasswordValid = Verify(request.Password, client.Password);
+                if (isPasswordValid)
+                {
+                    var token = TokenService.GenerateToken(client);
+                    _logger.LogInformation("Client authenticated successfully - " + request.Mail);
+                    var responseMessage = JsonConvert.SerializeObject(new { Token = "Bearer " + token });
+                    return responseMessage;
+                }
+                else
+                {
+                    _logger.LogWarning("Invalid login password is incorrect - " + request.Mail);
+                    return JsonConvert.SerializeObject(new { Error = "Invalid password or mail." });
+                }
+
+            }
+            else
+            {
+                _logger.LogWarning("Invalid login user not exists. - {request}", request);
+                return JsonConvert.SerializeObject(new { Error = "Invalid password or mail." });
             }
         }
     }

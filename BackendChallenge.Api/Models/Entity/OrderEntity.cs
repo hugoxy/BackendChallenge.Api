@@ -16,5 +16,16 @@ namespace BackendChallenge.Api.Models.Entity
 
         public List<ProductsEntity> Itens { get; set; }
 
+        public OrderEntity()
+        {
+        }
+
+        public OrderEntity(int orderId, int clientId, double total, List<ProductsEntity> itens)
+        {
+            OrderId = orderId;
+            ClientId = clientId;
+            Total = total;
+            Itens = itens;
+        }
     }
 }
